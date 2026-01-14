@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 자리 배치 Pro</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --primary-dark: #357abd;
+            --bg: #f0f2f5;
+            --white: #ffffff;
+            --accent: #ff7675;
+            --fixed: #3498db;
+            --selected: #f1c40f;
+            --save-btn: #27ae60;
+            --teacher-btn: #8e44ad;
+            --text-main: #2d3436;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--white);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .badge {
+            background: #e1f0ff;
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        #setup-container {
+            background: #f8f9fb;
+            padding: 25px;
+            border-radius: 18px;
+            margin-bottom: 30px;
+            border: 1px solid #edf2f7;
+            transition: all 0.3s ease;
+        }
+
+        #setup-container.hidden {
+            display: none;
+        }
+
+        .setup-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #4b5563;
+        }
+
+        textarea {
+            height: 120px;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            resize: none;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 20px;
+            background: #ffffff;
+            padding: 15px 20px;
+            border-radius: 14px;
+            align-items: center;
+            border: 1px solid #edf2f7;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:active { transform: scale(0.97); }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3); }
+
+        .btn-save { background: var(--save-btn); color: white; }
+        .btn-save:hover { background: #219150; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3); }
+
+        .btn-teacher { background: var(--teacher-btn); color: white; }
+        .btn-teacher:hover { background: #763691; box-shadow: 0 4px 12px rgba(142, 68, 173, 0.3); }
+
+        .chart-area {
+            margin-top: 10px;
+            padding: 40px;
+            border-radius: 20px;
+            background: #ffffff;
+            border: 1px solid #f0f0f0;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        #capture-zone {
+            padding: 40px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .screen {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            margin: 0 auto 50px;
+            width: 250px;
+            border-radius: 8px;
+            font-weight: 800;
+            letter-spacing: 8px;
+            font-size: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 0 #2c3e50;
+        }
+
+        .teacher-view-capture {
+            display: flex !important;
+            flex-direction: column-reverse !important;
+        }
+        .teacher-view-capture .screen {
+            margin-top: 50px !important;
+            margin-bottom: 0 !important;
+            box-shadow: 0 -4px 0 #2c3e50;
+        }
+
+        .grid {
+            display: grid;
+            gap: 15px;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        /* 짝꿍 모드 간격 (학생 시점 & 교사 시점 공용 레이아웃 규칙) */
+        /* 데이터만 뒤집히고 물리적 책상 위치는 동일해야 함 */
+        .grid.couple-mode .seat:nth-child(6n+2),
+        .grid.couple-mode .seat:nth-child(6n+4) {
+            margin-right: 60px; 
+        }
+
+        .seat {
+            width: 110px;
+            height: 75px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.05rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .seat:hover { border-color: var(--primary); background: #f0f7ff; }
+        .seat.fixed { border-color: var(--fixed); background-color: #f0f7ff; border-width: 2.5px; }
+        .seat.selected-for-swap { border-color: var(--selected); background: #fffdf0; transform: translateY(-4px); box-shadow: 0 8px 15px rgba(241, 196, 15, 0.2); }
+        
+        .fixed-icon { position: absolute; top: 4px; right: 6px; font-size: 0.75rem; color: var(--fixed); }
+        .seat.empty { background: #f9fafb; border-style: dashed; color: #cbd5e1; }
+
+        .info-panel {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f1f3f5;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .setup-section { grid-template-columns: 1fr; }
+            .seat { width: 80px; height: 60px; font-size: 0.9rem; }
+            .grid.couple-mode .seat:nth-child(6n+2),
+            .grid.couple-mode .seat:nth-child(6n+4) { margin-right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🏫 스마트 자리 배치 Pro</h1>
+        <span class="badge">v2.5 Web App</span>
+    </header>
+
+    <div id="setup-container">
+        <div class="setup-section">
+            <div class="input-group">
+                <label>👤 학생 명단 (쉼표로 구분)</label>
+                <textarea id="student-list" placeholder="김철수, 이영희, 박지민, 최유나..."></textarea>
+            </div>
+            <div class="input-group">
+                <label>🚫 기피 관계 (한 줄에 한 그룹)</label>
+                <textarea id="avoid-list" placeholder="A, B (둘이 옆 금지)&#10;C, D, E (서로 멀리)"></textarea>
+            </div>
+        </div>
+
+        <div class="mode-selector">
+            <label class="mode-option">
+                <input type="radio" name="layout-mode" value="couple" checked onchange="handleModeChange()"> 👫 짝꿍 모드 (3분단)
+            </label>
+            <label class="mode-option">
+                <input type="radio" name="layout-mode" value="single" onchange="handleModeChange()"> 📏 한 줄 모드
+            </label>
+            
+            <div id="single-mode-controls" style="display: none; margin-left: 20px; align-items: center; gap: 10px;">
+                <label style="font-size: 0.8rem;">가로 칸:</label>
+                <input type="number" id="cols" value="6" min="1" style="width: 50px; padding: 5px; border-radius: 6px; border: 1px solid #ddd;">
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-primary" onclick="startShuffle()">🎲 랜덤 배치 시작</button>
+        <button id="save-btn" class="btn-save" style="display: none;" onclick="saveToImage('student')">💾 학생용 저장</button>
+        <button id="teacher-save-btn" class="btn-teacher" style="display: none;" onclick="saveToImage('teacher')">👨‍🏫 교사용 저장</button>
+    </div>
+
+    <div id="error" style="color: var(--accent); text-align: center; margin-bottom: 20px; font-weight: bold; display: none;">기피 조건을 만족하는 배치를 찾을 수 없습니다.</div>
+
+    <div class="chart-area" id="chart-area" style="display: none;">
+        <div id="capture-zone">
+            <div class="screen" id="screen-label">칠 판</div>
+            <div id="seating-grid" class="grid"></div>
+        </div>
+        <div class="info-panel">
+            💡 <b>조작 가이드</b><br>
+            • <b>클릭:</b> 두 좌석 위치 바꾸기 &nbsp;&nbsp; • <b>더블클릭:</b> 좌석 고정/해제 (🔒)<br>
+            • <b>키보드 'S':</b> 설정창 열기/닫기
+        </div>
+    </div>
+</div>
+
+<script>
+    let isShuffling = false;
+    let fixedSeats = {}; 
+    let currentStudents = [];
+    let selectedIdx = null;
+
+    // 키보드 단축키
+    window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+        if (e.key.toLowerCase() === 's') { e.preventDefault(); toggleSetup(); }
+    });
+
+    function toggleSetup() {
+        document.getElementById('setup-container').classList.toggle('hidden');
+    }
+
+    function handleModeChange() {
+        const mode = document.querySelector('input[name="layout-mode"]:checked').value;
+        document.getElementById('single-mode-controls').style.display = (mode === 'single') ? 'flex' : 'none';
+        resetFixedSeats();
+    }
+
+    function resetFixedSeats() {
+        fixedSeats = {};
+        document.getElementById('seating-grid').innerHTML = "";
+        document.getElementById('chart-area').style.display = 'none';
+    }
+
+    function getColCount() {
+        const mode = document.querySelector('input[name="layout-mode"]:checked').value;
+        return mode === 'couple' ? 6 : parseInt(document.getElementById('cols').value);
+    }
+
+    function startShuffle() {
+        if (isShuffling) return;
+        const studentInput = document.getElementById('student-list').value.trim();
+        if (!studentInput) return;
+
+        let students = studentInput.split(',').map(s => s.trim()).filter(s => s !== "");
+        const colCount = getColCount();
+        const mode = document.querySelector('input[name="layout-mode"]:checked').value;
+
+        document.getElementById('chart-area').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        
+        isShuffling = true;
+        let shuffleCount = 0;
+        const grid = document.getElementById('seating-grid');
+        grid.className = 'grid' + (mode === 'couple' ? ' couple-mode' : '');
+        grid.style.gridTemplateColumns = `repeat(${colCount}, 1fr)`;
+
+        const timer = setInterval(() => {
+            const fakeShuffle = [...students].sort(() => Math.random() - 0.5);
+            renderGrid(fakeShuffle, colCount);
+            shuffleCount++;
+            if (shuffleCount > 15) {
+                clearInterval(timer);
+                finishSeating(students, colCount);
+            }
+        }, 70);
+    }
+
+    function finishSeating(students, colCount) {
+        const avoidInput = document.getElementById('avoid-list').value.trim();
+        let avoidGroups = avoidInput.split('\n').map(line => 
+            line.split(',').map(name => name.trim()).filter(n => n !== "")
+        ).filter(group => group.length >= 2);
+
+        let success = false;
+        let finalSeats = [];
+        let attempts = 0;
+        const fixedNames = Object.values(fixedSeats);
+
+        while (!success && attempts < 3000) {
+            attempts++;
+            let pool = students.filter(s => !fixedNames.includes(s)).sort(() => Math.random() - 0.5);
+            let draft = [];
+            let poolIdx = 0;
+            const rowCount = Math.ceil(students.length / colCount);
+            const totalSize = rowCount * colCount;
+
+            for (let i = 0; i < totalSize; i++) {
+                if (fixedSeats[i]) draft[i] = fixedSeats[i];
+                else if (poolIdx < pool.length) draft[i] = pool[poolIdx++];
+                else draft[i] = "-";
+            }
+
+            if (checkAvoidance(draft, avoidGroups, colCount)) {
+                finalSeats = draft;
+                success = true;
+            }
+        }
+
+        isShuffling = false;
+        if (success) {
+            currentStudents = finalSeats;
+            renderGrid(finalSeats, colCount);
+            document.getElementById('save-btn').style.display = 'block';
+            document.getElementById('teacher-save-btn').style.display = 'block';
+        } else {
+            document.getElementById('error').style.display = 'block';
+        }
+    }
+
+    function checkAvoidance(shuffled, groups, cols) {
+        for (const group of groups) {
+            for (let i = 0; i < group.length; i++) {
+                for (let j = i + 1; j < group.length; j++) {
+                    const idx1 = shuffled.indexOf(group[i]);
+                    const idx2 = shuffled.indexOf(group[j]);
+                    if (idx1 !== -1 && idx2 !== -1) {
+                        const r1 = Math.floor(idx1 / cols), c1 = idx1 % cols;
+                        const r2 = Math.floor(idx2 / cols), c2 = idx2 % cols;
+                        if (Math.abs(r1 - r2) <= 1 && Math.abs(c1 - c2) <= 1) return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    function renderGrid(seats, cols) {
+        const grid = document.getElementById('seating-grid');
+        grid.innerHTML = '';
+        
+        seats.forEach((name, idx) => {
+            const seat = document.createElement('div');
+            seat.className = `seat ${name === "-" ? 'empty' : ''} ${selectedIdx === idx ? 'selected-for-swap' : ''}`;
+            
+            if (fixedSeats[idx] && !isShuffling) {
+                seat.classList.add('fixed');
+                seat.innerHTML = `<span class="fixed-icon">🔒</span><span class="name">${name}</span>`;
+            } else {
+                seat.innerHTML = `<span class="name">${name}</span>`;
+            }
+            
+            if (!isShuffling) {
+                seat.onclick = () => {
+                    if (selectedIdx === null) {
+                        if (name !== "-") selectedIdx = idx;
+                    } else if (selectedIdx === idx) {
+                        selectedIdx = null;
+                    } else {
+                        // Swap logic
+                        const tName = currentStudents[selectedIdx];
+                        currentStudents[selectedIdx] = currentStudents[idx];
+                        currentStudents[idx] = tName;
+                        
+                        const tFixed = fixedSeats[selectedIdx];
+                        if (fixedSeats[idx]) fixedSeats[selectedIdx] = fixedSeats[idx]; else delete fixedSeats[selectedIdx];
+                        if (tFixed) fixedSeats[idx] = tFixed; else delete fixedSeats[idx];
+                        
+                        selectedIdx = null;
+                    }
+                    renderGrid(currentStudents, cols);
+                };
+                seat.ondblclick = (e) => {
+                    e.preventDefault();
+                    if (name === "-") return;
+                    if (fixedSeats[idx]) delete fixedSeats[idx];
+                    else fixedSeats[idx] = name;
+                    renderGrid(currentStudents, cols);
+                };
+            }
+            grid.appendChild(seat);
+        });
+    }
+
+    async function saveToImage(viewType) {
+        const captureZone = document.getElementById('capture-zone');
+        const colCount = getColCount();
+        const originalData = [...currentStudents];
+
+        if (viewType === 'teacher') {
+            const rowCount = Math.ceil(currentStudents.length / colCount);
+            const teacherOrderedSeats = [];
+            
+            // 물리적인 간격(Grid CSS)은 그대로 유지하면서 내용물만 뒤집음
+            // 줄 순서 뒤집기 + 줄 내부 순서 뒤집기
+            for (let r = rowCount - 1; r >= 0; r--) {
+                for (let c = colCount - 1; c >= 0; c--) {
+                    teacherOrderedSeats.push(currentStudents[r * colCount + c]);
+                }
+            }
+            
+            renderGrid(teacherOrderedSeats, colCount);
+            captureZone.classList.add('teacher-view-capture');
+            document.getElementById('screen-label').innerText = "교 탁";
+        }
+
+        try {
+            const canvas = await html2canvas(captureZone, { 
+                backgroundColor: "#ffffff", 
+                scale: 2,
+                logging: false 
+            });
+            const link = document.createElement('a');
+            link.download = `자리배치도_${viewType === 'teacher' ? '교사용' : '학생용'}_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        } finally {
+            if (viewType === 'teacher') {
+                captureZone.classList.remove('teacher-view-capture');
+                document.getElementById('screen-label').innerText = "칠 판";
+                renderGrid(originalData, colCount);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

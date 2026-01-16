@@ -207,8 +207,6 @@
             margin: 0 auto;
         }
 
-        /* 짝꿍 모드 간격 (학생 시점 & 교사 시점 공용 레이아웃 규칙) */
-        /* 데이터만 뒤집히고 물리적 책상 위치는 동일해야 함 */
         .grid.couple-mode .seat:nth-child(6n+2),
         .grid.couple-mode .seat:nth-child(6n+4) {
             margin-right: 60px; 
@@ -248,6 +246,16 @@
             color: #666;
             line-height: 1.6;
             text-align: center;
+            position: relative;
+        }
+
+        .maker-info {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.75rem;
+            color: #adb5bd;
+            font-weight: 500;
         }
 
         @media (max-width: 768px) {
@@ -308,8 +316,8 @@
         </div>
         <div class="info-panel">
             💡 <b>조작 가이드</b><br>
-            • <b>클릭:</b> 두 좌석 위치 바꾸기 &nbsp;&nbsp; • <b>더블클릭:</b> 좌석 고정/해제 (🔒)<br>
-            • <b>키보드 'S':</b> 설정창 열기/닫기
+            • <b>클릭:</b> 두 좌석 위치 바꾸기 &nbsp;&nbsp; • <b>더블클릭:</b> 좌석 고정/해제 (🔒)
+            <div class="maker-info">made by 성T</div>
         </div>
     </div>
 </div>
@@ -320,7 +328,7 @@
     let currentStudents = [];
     let selectedIdx = null;
 
-    // 키보드 단축키
+    // 키보드 단축키 기능 유지 (가이드에서만 삭제)
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
         if (e.key.toLowerCase() === 's') { e.preventDefault(); toggleSetup(); }
@@ -457,7 +465,6 @@
                     } else if (selectedIdx === idx) {
                         selectedIdx = null;
                     } else {
-                        // Swap logic
                         const tName = currentStudents[selectedIdx];
                         currentStudents[selectedIdx] = currentStudents[idx];
                         currentStudents[idx] = tName;
@@ -491,8 +498,6 @@
             const rowCount = Math.ceil(currentStudents.length / colCount);
             const teacherOrderedSeats = [];
             
-            // 물리적인 간격(Grid CSS)은 그대로 유지하면서 내용물만 뒤집음
-            // 줄 순서 뒤집기 + 줄 내부 순서 뒤집기
             for (let r = rowCount - 1; r >= 0; r--) {
                 for (let c = colCount - 1; c >= 0; c--) {
                     teacherOrderedSeats.push(currentStudents[r * colCount + c]);

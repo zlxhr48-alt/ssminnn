@@ -40,10 +40,37 @@
             position: relative;
         }
 
-        header { text-align: center; margin-bottom: 30px; }
+        header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
         h1 { color: var(--primary); font-size: 1.8rem; margin: 0; letter-spacing: -0.5px; }
 
-        /* 선생님만 확인용 미세 점 */
+        .bgm-toggle {
+            background: #f1f2f6;
+            border: 1px solid #ddd;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .bgm-toggle.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+
         #secret-dot {
             position: fixed;
             bottom: 5px;
@@ -62,7 +89,7 @@
             margin-bottom: 30px;
             border: 1px solid #edf2f7;
         }
-        #setup-container.hidden { display: none; }
+        .hidden { display: none !important; }
 
         .setup-section {
             display: grid;
@@ -188,16 +215,34 @@
 
         .seat.locked { border-color: var(--lock); background: #fff9f0; }
         .lock-icon { position: absolute; top: 5px; right: 5px; font-size: 0.8rem; color: var(--lock); }
-
         .seat.selected-for-swap { border-color: var(--selected); background: #fffdf0; transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .seat.empty { background: #f9fafb; border-style: dashed; color: #cbd5e1; }
+        
+        .seat.empty { background: #f9fafb; border: 2px dashed #cbd5e1; color: transparent; cursor: default; }
+        .seat.empty.print-mode { border: none !important; background: transparent !important; }
 
         .info-panel {
-            margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px;
-            font-size: 0.9rem; color: #4b5563; text-align: left; line-height: 1.7;
+            margin-top: 30px; padding: 25px; background: #f8f9fa; border-radius: 16px;
+            font-size: 0.9rem; color: #4b5563; text-align: left; line-height: 1.8;
             border: 1px solid #eee;
         }
-        .info-panel b { color: var(--primary); }
+        .info-panel b { color: var(--primary); font-size: 1rem; display: block; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        
+        .info-row { margin-bottom: 8px; display: block; }
+        .info-row span { color: var(--primary); font-weight: bold; margin-right: 6px; }
+
+        .info-flex-wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; }
+        .info-item { display: inline-flex; align-items: center; }
+        .info-item span { color: var(--primary); font-weight: bold; margin-right: 6px; }
+
+        footer {
+            margin-top: 40px;
+            padding: 20px;
+            color: #bdc3c7;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -207,13 +252,16 @@
 <div class="container">
     <header>
         <h1>🏫 스마트 자리 배치 Pro</h1>
+        <button id="bgm-btn" class="bgm-toggle" onclick="toggleBGM()">
+            <span id="bgm-icon">🔇</span> BGM
+        </button>
     </header>
 
     <div id="setup-container">
         <div class="setup-section">
             <div class="input-group">
-                <label>👤 학생 명단 (쉼표로 구분)</label>
-                <textarea id="student-list" placeholder="강민준, 고예은, 권도현..."></textarea>
+                <label>👤 학생 명단 (쉼표로 구분, 빈자리는 'X')</label>
+                <textarea id="student-list" placeholder="강민준, 고예은, X, 권도현..."></textarea>
             </div>
             <div class="input-group">
                 <label>🚫 기피 관계 (한 줄에 한 그룹씩)</label>
@@ -244,14 +292,22 @@
             <div id="seating-grid" class="grid"></div>
         </div>
         
-        <div class="info-panel">
-            <b>📍 기능 안내</b><br>
-            • 기피 관계를 설정하면 인접하지 않게 자동 계산됩니다.<br>
-            • <b>H</b>: 현재 상태를 비밀 저장 (화면에 표시 안 됨)<br>
-            • <b>Shift + 클릭</b>: 저장된 비밀 상태를 즉시 복구
+        <div id="info-panel" class="info-panel">
+            <b>📍 기능 안내</b>
+            <div class="info-row"><span>기피 관계 설정:</span>상, 하, 좌, 우, 대각선 인접 자리 방지 우선 배치</div>
+            <div class="info-row"><span>빈자리 설정:</span>명단에 'X' 입력 시 해당 위치 고정 및 투명 처리</div>
+            <div class="info-row"><span>S:</span>교사용 설정창 열기/닫기</div>
+            <div class="info-flex-wrap">
+                <div class="info-item"><span>H:</span>비밀 자리 저장</div>
+                <div class="info-item"><span>Shift+클릭:</span>비밀 자리 실행</div>
+                <div class="info-item"><span>더블 클릭:</span>고정(🔒)</div>
+                <div class="info-item"><span>클릭:</span>자리 교체</div>
+            </div>
         </div>
     </div>
 </div>
+
+<footer>made by 성T</footer>
 
 <script>
     let secretLayout = null; 
@@ -260,30 +316,111 @@
     let selectedIdx = null;
     let isShiftPressed = false;
 
-    // 키보드 이벤트 감시
+    // --- Audio System ---
+    let audioCtx = null;
+    let bgmIsPlaying = false;
+    let nextBeatTime = 0;
+    let bgmLoopTimer = null;
+    let beatStep = 0;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playKick(time) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.15);
+        gain.gain.setValueAtTime(0.6, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.15);
+    }
+
+    function playAnimeSynth(freq, time, duration, vol = 0.08) {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sawtooth';
+        osc2.type = 'square';
+        osc1.frequency.setValueAtTime(freq, time);
+        osc2.frequency.setValueAtTime(freq * 1.005, time);
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(vol, time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, time);
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + duration);
+        osc2.stop(time + duration);
+    }
+
+    const animeMelody = [392, 440, 493.88, 587.33, 392, 440, 493.88, 659.25, 587.33, 493.88, 440, 392, 440, 0, 493.88, 0];
+
+    function scheduler() {
+        while (nextBeatTime < audioCtx.currentTime + 0.1) {
+            const step = beatStep % animeMelody.length;
+            if (beatStep % 2 === 0) playKick(nextBeatTime);
+            if (animeMelody[step] > 0) playAnimeSynth(animeMelody[step], nextBeatTime, 0.25);
+            nextBeatTime += 0.25;
+            beatStep++;
+        }
+        bgmLoopTimer = setTimeout(scheduler, 25);
+    }
+
+    function toggleBGM() {
+        initAudio();
+        const btn = document.getElementById('bgm-btn');
+        const icon = document.getElementById('bgm-icon');
+        if (!bgmIsPlaying) {
+            bgmIsPlaying = true;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            nextBeatTime = audioCtx.currentTime;
+            beatStep = 0;
+            btn.classList.add('active');
+            icon.innerText = '✨';
+            scheduler();
+        } else {
+            bgmIsPlaying = false;
+            clearTimeout(bgmLoopTimer);
+            btn.classList.remove('active');
+            icon.innerText = '🔇';
+        }
+    }
+
+    function playShuffleSound() {
+        if (!audioCtx) initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        [523.25, 659.25, 783.99].forEach((f, i) => playAnimeSynth(f, now + (i * 0.05), 0.2, 0.1));
+    }
+
+    // --- Seating Logic ---
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Shift') isShiftPressed = true;
         if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-        
-        const key = e.key.toLowerCase();
-        if (key === 's') { 
-            e.preventDefault(); 
+        if (e.key.toLowerCase() === 's') { 
             document.getElementById('setup-container').classList.toggle('hidden'); 
+            document.getElementById('info-panel').classList.toggle('hidden');
         }
-        if (key === 'h') { 
-            e.preventDefault(); 
-            saveCurrentAsSecret(); 
-        }
+        if (e.key.toLowerCase() === 'h') saveCurrentAsSecret();
     });
 
-    window.addEventListener('keyup', (e) => {
-        if (e.key === 'Shift') isShiftPressed = false;
-    });
+    window.addEventListener('keyup', (e) => { if (e.key === 'Shift') isShiftPressed = false; });
 
     document.getElementById('shuffle-btn').addEventListener('click', function(e) {
-        // Shift 키가 눌려있는지 확인 (비밀 복구 모드)
-        const useSecret = e.shiftKey || isShiftPressed;
-        executePlacement(useSecret);
+        executePlacement(e.shiftKey || isShiftPressed);
     });
 
     function handleModeChange() {
@@ -297,8 +434,8 @@
         if (currentStudents.length === 0) return;
         secretLayout = JSON.parse(JSON.stringify(currentStudents));
         const dot = document.getElementById('secret-dot');
-        dot.style.backgroundColor = '#d1d5db'; // 아주 연한 회색 점 (선생님만 보임)
-        console.log("Secret saved."); 
+        dot.style.backgroundColor = '#4a90e2'; 
+        setTimeout(() => { dot.style.backgroundColor = 'transparent'; }, 500);
     }
 
     function getColCount() {
@@ -306,47 +443,40 @@
         return mode === 'couple' ? 6 : (parseInt(document.getElementById('custom-cols').value) || 5);
     }
 
-    // 셔플 효과 없이 즉시 실행
     function executePlacement(useSecret) {
+        playShuffleSound();
         const colCount = getColCount();
         document.getElementById('chart-area').style.display = 'block';
 
-        if (useSecret && secretLayout && secretLayout.length > 0) {
+        if (useSecret && secretLayout) {
             currentStudents = JSON.parse(JSON.stringify(secretLayout));
             renderGrid(currentStudents, colCount, false);
             return;
         }
         
         const list = document.getElementById('student-list').value.trim();
-        if (!list) {
-            alert("학생 명단을 입력해주세요.");
-            return;
-        }
-
+        if (!list) return;
         let students = list.split(',').map(s => s.trim()).filter(s => s);
         
-        // 로직 계산 및 즉시 렌더링
+        students.forEach((s, i) => {
+            if (s.toUpperCase() === 'X') lockedIndices.add(i);
+        });
+
         performFinalShuffle(students, colCount);
         renderGrid(currentStudents, colCount, false);
     }
 
     function isAdjacentViolation(layout, cols, avoidGroups) {
-        const rows = Math.ceil(layout.length / cols);
         for (let i = 0; i < layout.length; i++) {
             const studentA = layout[i];
-            if (!studentA) continue;
+            if (!studentA || studentA.toUpperCase() === 'X') continue;
             const r = Math.floor(i / cols);
             const c = i % cols;
-            const neighbors = [
-                [r-1, c-1], [r-1, c], [r-1, c+1],
-                [r, c-1],             [r, c+1],
-                [r+1, c-1], [r+1, c], [r+1, c+1]
-            ];
+            const neighbors = [[r-1,c-1],[r-1,c],[r-1,c+1],[r,c-1],[r,c+1],[r+1,c-1],[r+1,c],[r+1,c+1]];
             for (const [nr, nc] of neighbors) {
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-                    const ni = nr * cols + nc;
+                const ni = nr * cols + nc;
+                if (nr >= 0 && nr < Math.ceil(layout.length/cols) && nc >= 0 && nc < cols && layout[ni]) {
                     const studentB = layout[ni];
-                    if (!studentB) continue;
                     for (const group of avoidGroups) {
                         if (group.has(studentA) && group.has(studentB)) return true;
                     }
@@ -363,86 +493,63 @@
             .filter(set => set.size > 1);
 
         let bestLayout = null;
-        let attempts = 0;
-        const maxAttempts = 1000; 
-
-        while (attempts < maxAttempts) {
-            let tempLayout = new Array(allStudents.length).fill("");
-            let usedStudents = new Set();
-
-            lockedIndices.forEach(idx => {
-                if (idx < allStudents.length && currentStudents[idx]) {
-                    tempLayout[idx] = currentStudents[idx];
-                    usedStudents.add(currentStudents[idx]);
-                }
+        for (let a = 0; a < 1000; a++) {
+            let temp = new Array(allStudents.length).fill("");
+            lockedIndices.forEach(idx => { 
+                if (allStudents[idx]) temp[idx] = allStudents[idx]; 
             });
 
-            let freeStudents = allStudents.filter(s => !usedStudents.has(s)).sort(() => Math.random() - 0.5);
-            let freePtr = 0;
-            for (let i = 0; i < tempLayout.length; i++) {
-                if (tempLayout[i] === "" && freePtr < freeStudents.length) {
-                    tempLayout[i] = freeStudents[freePtr++];
-                }
+            let used = new Set(temp.filter(s => s));
+            let free = allStudents.filter(s => !used.has(s)).sort(() => Math.random() - 0.5);
+            let ptr = 0;
+            for (let i = 0; i < temp.length; i++) {
+                if (!temp[i]) temp[i] = free[ptr++];
             }
-
-            if (!isAdjacentViolation(tempLayout, cols, avoidGroups)) {
-                bestLayout = tempLayout;
+            
+            if (!isAdjacentViolation(temp, cols, avoidGroups)) {
+                bestLayout = temp;
                 break;
             }
-            attempts++;
         }
         currentStudents = bestLayout || allStudents.sort(() => Math.random() - 0.5);
     }
 
-    function renderGrid(seats, cols, isTeacherView) {
+    function renderGrid(seats, cols, isTeacherView, isPrinting = false) {
         const grid = document.getElementById('seating-grid');
         const mode = document.querySelector('input[name="layout-mode"]:checked').value;
         const screen = document.getElementById('main-screen');
-        
         grid.innerHTML = '';
-        
-        if (mode === 'couple') {
-            grid.className = 'grid couple-mode';
-            grid.style.gridTemplateColumns = `1fr 1fr 0.5fr 1fr 1fr 0.5fr 1fr 1fr`;
-        } else {
-            grid.className = 'grid';
-            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-            grid.style.columnGap = '15px';
-        }
-
-        if (isTeacherView) screen.className = "screen screen-bottom";
-        else screen.className = "screen screen-top";
+        grid.className = mode === 'couple' ? 'grid couple-mode' : 'grid';
+        grid.style.gridTemplateColumns = mode === 'couple' ? `1fr 1fr 0.5fr 1fr 1fr 0.5fr 1fr 1fr` : `repeat(${cols}, 1fr)`;
+        screen.className = isTeacherView ? "screen screen-bottom" : "screen screen-top";
 
         let displayData = seats.map((s, i) => ({ name: s, isLocked: lockedIndices.has(i), origIdx: i }));
-        
         if (isTeacherView) {
             let rows = [];
             for (let i = 0; i < seats.length; i += cols) {
                 let row = [];
-                for(let j=0; j<cols; j++) {
-                    let realIdx = i + j;
-                    row.push({ name: seats[realIdx] || "", isLocked: lockedIndices.has(realIdx), origIdx: realIdx });
-                }
+                for(let j=0; j<cols; j++) row.push({ name: seats[i+j] || "", isLocked: lockedIndices.has(i+j), origIdx: i+j });
                 rows.push(row.reverse());
             }
             displayData = rows.reverse().flat();
         }
 
         displayData.forEach((item, idx) => {
-            if (mode === 'couple') {
-                const currentInRow = idx % cols;
-                if (currentInRow === 2 || currentInRow === 4) {
-                    const aisle = document.createElement('div');
-                    aisle.className = 'aisle';
-                    grid.appendChild(aisle);
-                }
+            if (mode === 'couple' && (idx % cols === 2 || idx % cols === 4)) {
+                const aisle = document.createElement('div');
+                aisle.className = 'aisle';
+                grid.appendChild(aisle);
+            }
+            const seat = document.createElement('div');
+            const isX = item.name && item.name.toUpperCase() === 'X';
+            
+            seat.className = `seat`;
+            if (isX) {
+                seat.classList.add('empty');
+                if (isPrinting) seat.classList.add('print-mode');
             }
 
-            const seat = document.createElement('div');
-            const name = item.name;
-            seat.className = `seat ${!name ? 'empty' : ''}`;
-            
-            if (item.isLocked) {
+            if (item.isLocked && !isX) {
                 seat.classList.add('locked');
                 const icon = document.createElement('span');
                 icon.className = 'lock-icon';
@@ -450,50 +557,42 @@
                 seat.appendChild(icon);
             }
 
-            const nameLabel = document.createElement('span');
-            nameLabel.innerText = name || "-";
-            seat.appendChild(nameLabel);
-
+            const label = document.createElement('span');
+            label.innerText = isX ? "" : (item.name || "-");
+            seat.appendChild(label);
+            
             if (!isTeacherView && selectedIdx === item.origIdx) seat.classList.add('selected-for-swap');
             
             seat.onclick = () => {
-                if (isTeacherView) return;
-                const realIdx = item.origIdx;
-                if (selectedIdx === null) {
-                    selectedIdx = realIdx;
-                } else {
-                    const temp = currentStudents[selectedIdx];
-                    currentStudents[selectedIdx] = currentStudents[realIdx];
-                    currentStudents[realIdx] = temp;
+                if (isTeacherView || isX) return;
+                if (selectedIdx === null) selectedIdx = item.origIdx;
+                else {
+                    [currentStudents[selectedIdx], currentStudents[item.origIdx]] = [currentStudents[item.origIdx], currentStudents[selectedIdx]];
                     selectedIdx = null;
                 }
                 renderGrid(currentStudents, cols, false);
             };
-
             seat.ondblclick = (e) => {
                 e.preventDefault();
-                if (isTeacherView || !name) return;
-                const realIdx = item.origIdx;
-                if (lockedIndices.has(realIdx)) lockedIndices.delete(realIdx);
-                else lockedIndices.add(realIdx);
+                if (isTeacherView || !item.name || isX) return;
+                if (lockedIndices.has(item.origIdx)) lockedIndices.delete(item.origIdx);
+                else lockedIndices.add(item.origIdx);
                 renderGrid(currentStudents, cols, false);
             };
-
             grid.appendChild(seat);
         });
     }
 
-    async function saveToImage(isTeacherMirrorVersion) {
+    async function saveToImage(isTeacher) {
         const zone = document.getElementById('capture-zone');
         const cols = getColCount();
-        renderGrid(currentStudents, cols, isTeacherMirrorVersion);
-        const canvas = await html2canvas(zone, { backgroundColor: "#ffffff", scale: 2 });
+        renderGrid(currentStudents, cols, isTeacher, true);
+        const canvas = await html2canvas(zone, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
         const link = document.createElement('a');
-        const suffix = isTeacherMirrorVersion ? "교사용" : "학생용";
-        link.download = `자리배치_${suffix}.png`;
+        link.download = `자리배치_${isTeacher ? "교사용" : "학생용"}.png`;
         link.href = canvas.toDataURL();
         link.click();
-        if (isTeacherMirrorVersion) renderGrid(currentStudents, cols, false);
+        renderGrid(currentStudents, cols, false);
     }
 </script>
 </body>
